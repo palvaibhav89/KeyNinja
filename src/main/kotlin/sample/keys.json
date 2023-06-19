@@ -1,0 +1,38 @@
+{
+  "uat": {
+    "fb_app_id": {
+      "value": "sadhasdjhaskhk",
+      "type": "constant"
+    },
+    "fb_app_provider": {
+      "value": "sadhasdjhaskhk",
+      "type": "string"
+    }
+  },
+  "development": {
+    "fb_app_id": {
+      "value": "sadhasdjhaskhk",
+      "type": "constant"
+    },
+    "fb_app_provider": {
+      "value": "sadhasdjhaskhk",
+      "type": "string"
+    }
+  },
+  "production": {
+    "fb_app_id": {
+      "value": "sadhasdjhaskhk",
+      "type": "constant"
+    },
+    "fb_app_provider": {
+      "value": "sadhasdjhaskhk",
+      "type": "string"
+    }
+  },
+  "default": {
+    "fb_app_id_xxx": {
+      "value": "sadhasdjhaskhk",
+      "type": "constant"
+    }
+  }
+}

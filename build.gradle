@@ -1,0 +1,32 @@
+plugins {
+    id 'org.jetbrains.kotlin.jvm' version '1.7.21'
+    id 'java-gradle-plugin'
+}
+
+group = 'com.techknights'
+version = '1.0'
+
+repositories {
+    mavenCentral()
+    google()
+}
+
+dependencies {
+    testImplementation 'org.jetbrains.kotlin:kotlin-test'
+    implementation 'com.android.tools.build:gradle:7.2.2'
+
+    implementation 'com.google.code.gson:gson:2.9.0'
+}
+
+compileKotlin {
+    kotlinOptions.jvmTarget = '11'
+}
+
+gradlePlugin {
+    plugins {
+        keyNinja {
+            id = 'com.techknights.keyninja'
+            implementationClass = 'MainPlugin'
+        }
+    }
+}
