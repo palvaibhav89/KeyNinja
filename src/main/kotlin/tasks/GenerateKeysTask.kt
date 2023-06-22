@@ -1,7 +1,7 @@
 package tasks
 
-import apple.security.KeychainStore
 import com.android.build.gradle.api.ApplicationVariant
+import com.github.javaparser.utils.StringEscapeUtils
 import com.google.gson.Gson
 import com.google.gson.JsonObject
 import model.KeyNinjaExtension
@@ -9,10 +9,13 @@ import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.TaskAction
-import pt.davidafsilva.apple.OSXKeychain
 import templates.CodeTemplates
 import utils.CryptoUtils
+import java.io.BufferedReader
 import java.io.File
+import java.io.InputStreamReader
+import java.util.Base64
+
 
 open class GenerateKeysTask: DefaultTask() {
 
@@ -164,24 +167,20 @@ open class GenerateKeysTask: DefaultTask() {
     }
 
     private fun getData(): String {
-        println("KeyNinja 1")
         val keyNinjaExtension = project.extensions.getByName("keyNinja") as KeyNinjaExtension
         val keyJsonPath = keyNinjaExtension.keyJsonPath
         if (keyJsonPath.isNullOrEmpty()) {
             throw GradleException("Please add path for keys.json in keyNinja gradle extension")
         }
-        println("KeyNinja 2")
 
         val keyJsonVersion = keyNinjaExtension.keyJsonVersion
             ?: throw GradleException("Please add version for keys.json in keyNinja gradle extension")
-        println("KeyNinja 3")
 
-        val keyChain = OSXKeychain.getInstance()
-        println("KeyNinja 4")
         val keyName = "${KEY_CHAIN_KEY_NAME}_$keyJsonVersion"
-        var mainData: String? = keyChain.findGenericPassword(KEY_CHAIN_SERVICE, keyName).get()
-        println("KeyNinja 5")
-        if (mainData.isNullOrEmpty()) {
+        val retrieveCommand = listOf("security", "find-generic-password", "-s", KEY_CHAIN_SERVICE, "-a", keyName, "-w")
+        var mainData = executeCommand(retrieveCommand)
+
+        if (mainData.isNullOrEmpty() || mainData.contains("The specified item could not be found in the keychain")) {
             val keysFile = File(keyJsonPath)
             if (!keysFile.exists()) {
                 throw GradleException("Keys.json not found on given path")
@@ -190,9 +189,15 @@ open class GenerateKeysTask: DefaultTask() {
             if (mainData.isNullOrEmpty()) {
                 throw GradleException("Keys.json don't have required data")
             }
-            keyChain.addGenericPassword(KEY_CHAIN_SERVICE, keyName, mainData)
+
+            val base64Data = Base64.getEncoder().encodeToString(mainData.toByteArray())
+            val storeCommand = listOf("security", "add-generic-password", "-U", "-s", KEY_CHAIN_SERVICE, "-a", keyName, "-w", base64Data)
+            executeCommand(storeCommand)
+        } else {
+            val decodedData = Base64.getMimeDecoder().decode(mainData)
+            mainData = String(decodedData)
         }
-        return mainData
+        return mainData.toString()
     }
 
     private fun File.readJSONFrom(): String? {
@@ -208,5 +213,20 @@ open class GenerateKeysTask: DefaultTask() {
             e.printStackTrace()
             throw GradleException("Invalid Keys.json file. $e")
         }
+    }
+
+    private fun executeCommand(commands: List<String>): String? {
+        val process = ProcessBuilder(commands)
+            .redirectErrorStream(true)
+            .start()
+
+        val reader = BufferedReader(InputStreamReader(process.inputStream))
+        val builder = StringBuilder()
+        var line: String?
+        while (reader.readLine().also { line = it } != null) {
+            builder.append(line)
+            builder.append(System.getProperty("line.separator"))
+        }
+        return builder.toString()
     }
 }

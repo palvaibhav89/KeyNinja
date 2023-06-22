@@ -6,7 +6,6 @@ import model.KeyNinjaExtension
 import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import pt.davidafsilva.apple.OSXKeychain
 import tasks.GenerateKeysTask
 
 class MainPlugin: Plugin<Project> {
@@ -16,7 +15,6 @@ class MainPlugin: Plugin<Project> {
     }
 
     override fun apply(p0: Project) {
-        OSXKeychain.getInstance()
         p0.extensions.create("keyNinja", KeyNinjaExtension::class.java)
 
         val android = p0.extensions.findByType(BaseExtension::class.java)
