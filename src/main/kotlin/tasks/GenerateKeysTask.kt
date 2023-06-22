@@ -1,13 +1,15 @@
 package tasks
 
-import MainPlugin
+import apple.security.KeychainStore
 import com.android.build.gradle.api.ApplicationVariant
 import com.google.gson.Gson
 import com.google.gson.JsonObject
+import model.KeyNinjaExtension
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.TaskAction
+import pt.davidafsilva.apple.OSXKeychain
 import templates.CodeTemplates
 import utils.CryptoUtils
 import java.io.File
@@ -23,6 +25,9 @@ open class GenerateKeysTask: DefaultTask() {
         private const val KEY_FILE_NAME = "PKeys.kt"
         private const val INIT_HELPER_FILE_NAME = "AppCompatViewHelper.kt"
         private const val STRINGS_FILE_NAME = "key_ninja_strings.xml"
+
+        private const val KEY_CHAIN_SERVICE = "KeyNinjaService"
+        private const val KEY_CHAIN_KEY_NAME = "KeysJson"
     }
 
     @Input
@@ -30,11 +35,13 @@ open class GenerateKeysTask: DefaultTask() {
 
     @TaskAction
     fun performTask() {
-        val resources = getResources()
+        val data = getData()
 
-        generateStringResource(resources.second)
+        val resources = processData(data)
 
         generateCodeForConstants(resources.first)
+
+        generateStringResource(resources.second)
     }
 
     private fun generateCodeForConstants(constantResObj: JsonObject?) {
@@ -83,10 +90,9 @@ open class GenerateKeysTask: DefaultTask() {
         fileStringBuilder.toString().writeToFile(stringsFileDirPath, STRINGS_FILE_NAME)
     }
 
-    private fun getResources(): Pair<JsonObject?, JsonObject?> {
+    private fun processData(data: String): Pair<JsonObject?, JsonObject?> {
 
-        val keysFile = File("${project.rootDir.path}/keys.json")
-        val keysJson = readJSONFrom(keysFile)
+        val keysJson = Gson().fromJson(data, JsonObject::class.java)
 
         val flavorName = if (appVariant.flavorName == "qa") {
             "uat"
@@ -123,26 +129,6 @@ open class GenerateKeysTask: DefaultTask() {
         }
     }
 
-    private fun readJSONFrom(keysFile: File): JsonObject {
-        return try {
-            val  inputStream = keysFile.inputStream()
-            val fileStr = inputStream.bufferedReader().use{
-                it.readText()
-            }
-            if (fileStr.isEmpty()) {
-                throw GradleException("Keys.json file is empty")
-            }
-            Gson().fromJson(fileStr, JsonObject::class.java)
-        } catch (e: Exception) {
-            e.printStackTrace()
-            throw GradleException("Invalid Keys.json file. $e")
-        }
-    }
-
-    private fun log(msg: String) {
-        println("${MainPlugin.GROUP} $msg")
-    }
-
     private fun JsonObject.getKeysStr(): String {
         val builder = StringBuilder()
         keySet().forEachIndexed { index, key ->
@@ -174,6 +160,53 @@ open class GenerateKeysTask: DefaultTask() {
             }
         } catch (e: Exception) {
             e.printStackTrace()
+        }
+    }
+
+    private fun getData(): String {
+        println("KeyNinja 1")
+        val keyNinjaExtension = project.extensions.getByName("keyNinja") as KeyNinjaExtension
+        val keyJsonPath = keyNinjaExtension.keyJsonPath
+        if (keyJsonPath.isNullOrEmpty()) {
+            throw GradleException("Please add path for keys.json in keyNinja gradle extension")
+        }
+        println("KeyNinja 2")
+
+        val keyJsonVersion = keyNinjaExtension.keyJsonVersion
+            ?: throw GradleException("Please add version for keys.json in keyNinja gradle extension")
+        println("KeyNinja 3")
+
+        val keyChain = OSXKeychain.getInstance()
+        println("KeyNinja 4")
+        val keyName = "${KEY_CHAIN_KEY_NAME}_$keyJsonVersion"
+        var mainData: String? = keyChain.findGenericPassword(KEY_CHAIN_SERVICE, keyName).get()
+        println("KeyNinja 5")
+        if (mainData.isNullOrEmpty()) {
+            val keysFile = File(keyJsonPath)
+            if (!keysFile.exists()) {
+                throw GradleException("Keys.json not found on given path")
+            }
+            mainData = keysFile.readJSONFrom()
+            if (mainData.isNullOrEmpty()) {
+                throw GradleException("Keys.json don't have required data")
+            }
+            keyChain.addGenericPassword(KEY_CHAIN_SERVICE, keyName, mainData)
+        }
+        return mainData
+    }
+
+    private fun File.readJSONFrom(): String? {
+        return try {
+            val fileStr = inputStream().bufferedReader().use{
+                it.readText()
+            }
+            if (fileStr.isEmpty()) {
+                throw GradleException("Keys.json file is empty")
+            }
+            fileStr
+        } catch (e: Exception) {
+            e.printStackTrace()
+            throw GradleException("Invalid Keys.json file. $e")
         }
     }
 }
