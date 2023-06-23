@@ -1,7 +1,6 @@
 package tasks
 
 import com.android.build.gradle.api.ApplicationVariant
-import com.github.javaparser.utils.StringEscapeUtils
 import com.google.gson.Gson
 import com.google.gson.JsonObject
 import model.KeyNinjaExtension
