@@ -12,6 +12,7 @@ import templates.CodeTemplates
 import utils.CryptoUtils
 import java.io.BufferedReader
 import java.io.File
+import java.io.IOException
 import java.io.InputStreamReader
 import java.util.Base64
 
@@ -215,17 +216,22 @@ open class GenerateKeysTask: DefaultTask() {
     }
 
     private fun executeCommand(commands: List<String>): String? {
-        val process = ProcessBuilder(commands)
-            .redirectErrorStream(true)
-            .start()
+        try {
+            val process = ProcessBuilder(commands)
+                .redirectErrorStream(true)
+                .start()
 
-        val reader = BufferedReader(InputStreamReader(process.inputStream))
-        val builder = StringBuilder()
-        var line: String?
-        while (reader.readLine().also { line = it } != null) {
-            builder.append(line)
-            builder.append(System.getProperty("line.separator"))
+            val reader = BufferedReader(InputStreamReader(process.inputStream))
+            val builder = StringBuilder()
+            var line: String?
+            while (reader.readLine().also { line = it } != null) {
+                builder.append(line)
+                builder.append(System.getProperty("line.separator"))
+            }
+            return builder.toString()
+        } catch (e: IOException) {
+            e.printStackTrace()
+            return null
         }
-        return builder.toString()
     }
 }
