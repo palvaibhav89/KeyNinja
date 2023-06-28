@@ -97,11 +97,8 @@ open class GenerateKeysTask: DefaultTask() {
 
         val keysJson = Gson().fromJson(data, JsonObject::class.java)
 
-        val flavorName = if (appVariant.flavorName == "qa") {
-            "uat"
-        } else {
-            appVariant.flavorName
-        }
+        val flavorName = appVariant.flavorName
+
         return try {
             val flavourObj = keysJson.get(flavorName).asJsonObject
             val defaultObj = keysJson.get(DEFAULT_KEYS).asJsonObject
