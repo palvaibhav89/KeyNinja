@@ -1,14 +1,5 @@
 {
-  "uat": {
-    "fb_app_id": {
-      "value": "sadhasdjhaskhk",
-      "type": "constant"
-    },
-    "fb_app_provider": {
-      "value": "sadhasdjhaskhk",
-      "type": "string"
-    }
-  },
+  "version": 1,
   "development": {
     "fb_app_id": {
       "value": "sadhasdjhaskhk",
