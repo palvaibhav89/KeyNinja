@@ -45,6 +45,7 @@ keyNinja {
 
 ```
 {
+  "version": 2,
   "development": {
     "fb_app_id": {
       "value": "your_fb_app_id_here",
@@ -76,4 +77,5 @@ keyNinja {
 
 ## Notes
 1. Make sure to increment keyJsonVersion in the keyNinja configuration whenever you make changes to keys.json.
-2. The default section is used for keys that are common across all flavors.
+2. Make sure keyJsonVersion in app level build.gradle and version keys.json are same.
+3. The default section is used for keys that are common across all flavors.
